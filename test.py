@@ -414,16 +414,20 @@ def test_tc034(page, request):
 def test_tc035(page, request):
     bank = app(request)
     bank.login_customer("Hermoine Granger")
-    account_no = bank.current_account_no()
+    assert bank.current_account_no() == 1001
     original_balance = bank.current_balance()
-    accounts = bank.require_local_json("Account")
-    accounts[str(account_no)]["amount"] = 999999
-    bank.set_local_json("Account", accounts)
-    bank.storage("tampered_account_storage")
+    current_account = bank.require_local_json("CurrentAccount")
+    assert current_account["accountNo"] == 1001
+    current_account["amount"] = 999999
+    bank.set_local_json("CurrentAccount", current_account)
+    bank.storage("tampered_current_account_storage")
     page.reload()
-    bank.login_customer("Hermoine Granger")
+    page.locator("#accountSelect").wait_for()
     bank.snap("after_storage_tampering")
-    assert bank.current_balance() == original_balance
+    tampered_balance = bank.current_balance()
+    bank.click_button("Logout")
+    bank.snap("after_tampering_logout")
+    assert tampered_balance == original_balance
 
 def test_tc036(page, request):
     bank = app(request)
